@@ -1,0 +1,56 @@
+'''
+you are given multiple lists with multiple numbers, find biggest combination of modulus of the sum of squares of items
+see the problem description in the picture in repository:
+https://github.com/KatMiksche/bits-and-pieces/blob/1c19524dee5603728e18ac33590d2c319b82d8b0/superlist%20hackerrank.png
+
+I've managed to beat HackerRank compilator :-DDD
+try it yourself - https://www.hackerrank.com/challenges/maximize-it/problem?isFullScreen=true
+
+you can see how the code is running if you remove the hashtags
+
+'''
+k, m=input().split()
+k=int(k)
+m=int(m)
+array={}
+for x in range(k):
+    array[x]=input().split()
+for x in array:
+    for y in range(len(array[x])):
+       array[x][y]=int(array[x][y])**2%m
+    array[x]=sorted(array[x], reverse=True)
+
+array=dict(sorted(array.items(), key=lambda item: item[1], reverse=True))
+array=list(array.values())
+
+#print('array ',array)
+
+results=[]
+for x in range(len(array[0])):
+    var=[array[0][x]]
+    results.append(var)
+ #print ('first results ',results)
+
+for x in range(len(array)-1):
+    iteration=len(results)
+    #print('line ',x+1)
+    for y in range(len(array[x+1])):
+        #print('appending y ',array[x+1][y], ' for number of iterations ',iteration )
+        for z in range(iteration):
+            lst=results[z].copy()
+            lst.append(array[x+1][y])
+            if sum(lst)<m: results.append(lst.copy())
+        z=0
+        #print('y ',results)
+    #print('x ',results)
+    for z in range(iteration):
+        results.remove(results[0])
+    #print('x ',results)
+
+iteration=len(results)
+for i in range(iteration):
+    results.append(sum(results[0]))
+    results.remove(results[0])
+
+results.sort(reverse=True)
+print(results[0])
