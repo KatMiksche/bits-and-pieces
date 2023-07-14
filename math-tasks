@@ -1,0 +1,109 @@
+''' float-to-fraction is finding exact fraction of real number with repetitive pattern
+  least-common-multiple finds LCM of 2 numbers
+  get-multiple gives multiples of number
+  possible-prime-numbers gives you all prime numbers in given limit '''
+
+
+
+def possible_prime_numbers(limit):
+    '''Function returns list of prime numbers based on limit.
+    Exceeding limit 100000 is not recomended - it take ages :-D '''
+    limit=abs(limit)
+    primers=[3]
+    for i in range (5,limit+1,2):
+        add_to_primers=True
+        for member in primers:
+            if i%member==0:
+                add_to_primers=False
+                break
+        if add_to_primers==True: primers.append(i)
+    primers.insert(0,2)
+    print('Prime numbers in {} are {} \n'.format(limit, primers))
+    return primers
+
+def get_multiple(number,prime_numbers=[]):
+    '''Function disassamble integer number to list of prime numbers. For too big numbers it is limited by list of prime numbers
+    up to 100000. You can add your list of prime numbers to optional parameter'''
+    if type(number)!=int: exit('to get multiple of number, integer input required')
+    org_number=number
+    multiple = []
+    if number<0:
+        multiple.append(-1)
+        number=abs(number)
+    if len(prime_numbers)!=0:
+        primers=prime_numbers
+    else:
+        if number<100000:
+            primers=possible_prime_numbers(number)
+        else:
+            primers=possible_prime_numbers(100000)
+    while number>1:
+        number_before_cycle=number
+        for member in primers:
+            if number%member==0:
+                multiple.append(member)
+                number=int(number/member)
+                break
+        if number_before_cycle==number:
+            print('Unable to continue due to computer power limits')
+            multiple.append(number)
+            break
+    print('Multiples of {} are {} \n'.format(org_number, multiple))
+    return multiple
+
+def least_common_multiple(n1,n2):
+    '''function finding the least common multiple. For big numbers it generates list of prime numbers up to 100000
+    separately to cut down processing time'''
+    if n1>100000 or n2>100000:
+        prime_numbers=possible_prime_numbers(100000)
+        multiple1=get_multiple(n1,prime_numbers)
+        multiple2=get_multiple(n2,prime_numbers)
+    else:
+        multiple1 = get_multiple(n1)
+        multiple2 = get_multiple(n2)
+    lcm=1
+    for member in multiple1:
+        if member in multiple2:
+            lcm*=member
+            multiple2.remove(member)
+    print('Least common multiple of {} and {} is {}\n'.format(n1, n2, lcm))
+    return lcm
+
+def float_to_fraction(number, repeating_pattern):
+    '''The function is finding exact fraction for float numbers with repeating pattern.
+    Examples:
+        For 12.33333333 the parameters are number=12, repeating_pattern=3
+        For 777.77123123123 the parameters are number=777.77, repeating pattern=123
+        For 78.9789789 the parameters are number=78.9, repeating pattern=789
+        For 0.789 the parameters are number=0, repeating pattern=789
+    Function cannot handle numbers with more than 16 significant digits together.'''
+    whole_number=str(number)+str(repeating_pattern)
+    if len(str(abs(number))+str(repeating_pattern))>17:
+        exit('program terminated as number has more than 16 significant digits')
+    numerator=denominator=1
+    power_of_pattern=len(str(repeating_pattern))
+    if number<0:
+        numerator=-1
+        number=abs(number)
+    power_of_dot=0
+    if type(number)==float:
+        str_number=str(number)
+        power_of_dot = len(str_number) - (str_number.find('.')) - 1
+    numerator=int(numerator*(number*(10**(power_of_dot+power_of_pattern))+repeating_pattern-number*(10**power_of_dot)))
+    denominator=10**(power_of_dot+power_of_pattern)-(10**power_of_dot)
+    lcm=least_common_multiple(denominator, numerator)
+    if lcm!=1:
+        numerator=int(numerator/lcm)
+        denominator=int(denominator/lcm)
+    print('Fraction of {} with {} repeating is {}/{}\n'.format(whole_number,repeating_pattern,numerator,denominator))
+    return (numerator, denominator)
+
+
+if __name__ == "__main__":
+    possible_prime_numbers(100)
+    get_multiple(-97)
+    least_common_multiple(-456,32)
+    float_to_fraction(12.3,456)
+    possible_prime_numbers(100000)
+
+
