@@ -1,17 +1,19 @@
 /* ZOHO CUSTOM FUNCTION
 confirmed sales order --> invoice --> manual payment to bank account
-made by Katarina Miksche, email: kate.rusnak.kr@gmail.com 
+made by Katarina Miksche, email: 
 */
 
 void so_invoice_payment(Map salesorder, Map organization, Map user) {
 
-
 /* confirmed sales order --> invoice --> manual payment to bank account
-FUNCTION ONLY FOR SALES ORDERS WITH DISCOUNT ON ENTITY LEVEL
-!! hardcoded account ID
-possibly not considering tax
-triggering when sales orders is confirmed
-made by Katarina Miksche, email: kate.rusnak.kr@gmail.com 
+working with woocommerce 7.6.1, Integration for WooCommerce and Zoho 1.3.7 (plus Worddpress to CRM 1.6 for mass-exports) by CRM Perks
+FUNCTION PULLS DISCOUNTED PRICE FROM WOOCOMMERCE ON THE ENTITY LEVEL TO SALES ORDER
+INVOICE IS CREATED WITH PRICES FROM INVENTORY AND DISCOUNT IS IN ADJUSTMENT
+high amount sales orders require manual check as woocommerce is not sending correct data, difference cca £1 on sales orders over £500
+!! hardcoded account ID !!
+possibly not considering tax, IN CASE OF IMPLEMENTATION OF VAT THE FULL REVIEW MUST BE DONE
+triggering when sales orders is confirmed in woocommerce
+made by Katarina Miksche, email: katarina.miksche@gmail.com 
 */
 //
 // hardcode bank account ID
@@ -22,10 +24,11 @@ customerID = salesorder.get("customer_id");
 salesorderdate = salesorder.get("date").toString();
 organizationID = organization.get("organization_id");
 salesorderDetails = zoho.books.getRecordsByID("Salesorders",organizationID,salesorderID,"zbooks").get("salesorder");
+transaction_total = salesorder.get("total");
 //info salesorderDetails;
 lineItem = salesorderDetails.get("line_items");
 //info lineItem;
-discamount = salesorderDetails.get("discount_amount");
+//discamount = salesorderDetails.get("discount_amount");
 SO_number = salesorderDetails.get("salesorder_number");
 SO_number = "INV-" + SO_number;
 //
@@ -34,43 +37,48 @@ itemList = List();
 for each  find in lineItem
 {
 	imap = Map();
-	itemID = find.get("item_id");
-	rate = find.get("rate");
-	itemTaxID = find.get("tax_id");
 	//discount = find.get("discount");
-	quantity = find.get("quantity");
-	imap.put("item_id",itemID);
+	imap.put("item_id",find.get("item_id"));
 	imap.put("salesorder_item_id",find.get("line_item_id"));
-	imap.put("tax_id",itemTaxID);
-	imap.put("quantity",quantity);
+	//imap.put("rate",find.get("rate"));
+	imap.put("tax_id",find.get("tax_id"));
+	imap.put("quantity",find.get("quantity"));
 	itemList.add(imap);
 }
+info itemList;
 //
 // mapping info for invoice
 params = Map();
 params.put("customer_id",customerID);
 params.put("date",salesorderdate);
-params.put("discount",discamount);
-params.put("discount_type","entity_level");
+//params.put("discount",discamount);
+//params.put("discount_type","entity_level");
+params.put("total",transaction_total);
 params.put("invoice_number",SO_number);
 params.put("line_items",itemList);
-//info params.toMap();
+info params.toMap();
 //
 // creating invoice
 invResult = zoho.books.createRecord("Invoices",organizationID,params.toMap(),"zbooks");
+info invResult.get("message");
+//
+// updating new invoice with discount
+invoice = invResult.get("invoice");
+invoiceID = invoice.get("invoice_id");
+total_inv = invoice.get("total");
+params = Map();
+adjustment = 0 - (toDecimal(total_inv) - toDecimal(transaction_total));
+params.put("adjustment",adjustment);
+params.put("total",transaction_total);
+info params.toMap();
+invResult = zoho.books.updateRecord("Invoices",organizationID,invoiceID,params.toMap(),"zbooks");
 info invResult.get("message");
 //
 // storing new invoice data
 invoice = invResult.get("invoice");
 invoiceID = invoice.get("invoice_id");
 total_inv = invoice.get("total");
-info invoiceID;
-info total_inv;
 invoice_number = invoice.get("invoice_number");
-//
-// marking invoice as sent - not required
-//response = zoho.books.markStatus("Invoices",organizationID,invoiceID,"sent","zbooks");
-//info response;
 //
 // mapping data for payment
 params = Map();
@@ -81,8 +89,8 @@ params.put("account_id",accountID);
 params.put("amount",total_inv);
 params.put("reference_number",invoice_number);
 params.put("invoices",{{"invoice_id":invoiceID,"amount_applied":total_inv}});
-//info params.toMap();
 //
 // creating payment
 invResult = zoho.books.createRecord("Customerpayments",organizationID,params.toMap(),"zbooks");
-info invResult.get("message"); }
+info invResult.get("message");
+ }
